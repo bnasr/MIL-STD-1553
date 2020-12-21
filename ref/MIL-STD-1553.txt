@@ -1,0 +1,28 @@
+At a very high level, the MIL-STD-1553 bus is a data transmission protocol that consists mainly of two types of computers, 
+
+Bus Controllers (BC) and Remote Terminals (RT). 
+
+BCs control every action on the bus by dictating exactly when and how RTs communicate. 
+
+Each 1553 message is composed of three parts. 
+
+- The "command word" - which is the BC message telling which RT to send/receive data, 
+- a "status word" - the response from the RT acknowledging the BC command word, 
+- and finally the 0-32 data words - the useful information being passed across the bus. 
+
+All three of these "words" are 16 bits in length. 
+
+The Wikipedia entry on MIL-STD-1553 is probably enough to get you started, but if you have more in-depth questions about 1553, the attached PDF is a great place to start and you can always reach out if you need more clarification.
+
+Each row in the attached csv is a 1553 message (there is no status word. You can ignore that for this exercise). 
+
+
+- The 16-bit command word has already been translated for you into the addr, rxtx, subaddr, gap, and count fields. 
+
+- The addr field is the RT that the Bus Controller is addressing. 
+- rxtx is a boolean that indicates whether the RT being addressed is supposed to be sending or transmitting the data field. If true, the RT is sending the data, and if false, the BC is sending the data. 
+- I would think of subaddr as something akin to port numbers in IP communications (each RT could have several services running on it). 
+- Count is the number of 16-bit words sent in data. 
+- Gap (or inter message gap) is the time between messages in microseconds. 
+
+- Data is the actual useful information being transmitted but in raw hex.
