@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# importing required modules
 import pandas as pd
 from collections import Counter
 
@@ -15,25 +16,31 @@ from sklearn.covariance import EllipticEnvelope
 
 from datetime import datetime
 
+
+# define a class
 class AnomalyMIL1553:
     
+    #constructor
     def __init__(self, 
-                 training_file, 
-                 verbose = True,
-                 pca_n_components = 10, 
-                 word_vectorizer_min_df = 2):
+                 training_file, # input training data
+                 verbose = True, # whether to spit out the progress
+                 pca_n_components = 10,  # how many PCA components
+                 word_vectorizer_min_df = 2): #minimum words in the sentence
         
         self.verbose = verbose
         self.pca_n_components  = pca_n_components
         self.word_vectorizer_min_df = word_vectorizer_min_df
 
+        # whether the model has been initialized with training data yet
         self.initialized = False
         
+        #load the data
         self.xdata = self.load_data(data_file = training_file, 
                                min_df  = word_vectorizer_min_df,
                                n_components = pca_n_components)
         
 
+    # method on loading the data
     def load_data(self, 
                   data_file, 
                   initialize = True,
@@ -48,11 +55,14 @@ class AnomalyMIL1553:
         
         if self.verbose: print(datetime.now(), 'raw data shape:', df.shape)
             
+        # handling addr, subaddr and rxtx columns
         df['addr'] = df['addr'].astype('object')
         df['subaddr'] = df['subaddr'].astype('object')
         df['rxtx'] = df['rxtx'] * 1
         df['fulladdr'] = df['addr'].astype('str')+ '-' + df['subaddr'].astype('str')
         
+
+        #handling the data column
         if self.verbose: print(datetime.now(), 'applying OneHotEncoder ...')
         if initialize: 
             self.encoder = OneHotEncoder()
@@ -71,6 +81,7 @@ class AnomalyMIL1553:
        # sentences_matrix = self.count.transform(sentences)
        # sentences_matrix = pd.DataFrame(sentences_matrix.toarray())
     
+    	# using a vectorizer for word sequences
         if self.verbose: print(datetime.now(), 'applying TfidfVectorizer ...')
         if initialize: 
             self.tfidf = TfidfVectorizer()
@@ -78,7 +89,7 @@ class AnomalyMIL1553:
         sentences_matrix = self.tfidf.transform(sentences)
         sentences_matrix = pd.DataFrame(sentences_matrix.toarray())
 
-
+        # applying PCA on the vectorized matrix	
         if self.verbose: print(datetime.now(), 'applying PCA ...')
         if initialize: 
             self.pca = PCA(n_components = n_components)
@@ -86,13 +97,14 @@ class AnomalyMIL1553:
         sentences_matrix_pca = self.pca.transform(sentences_matrix)
         sentences_matrix_pca = pd.DataFrame(sentences_matrix_pca)
 
-        
+        # combining all the feature data
         if self.verbose: print(datetime.now(), 'concatenating ...')
         xdata = pd.concat([df[['rxtx', 'gap', 'count']], 
                                 addr_subaddr_fulladdr, 
                                 sentences_matrix_pca], 
                                axis=1)
         
+        # the model is now initialized with input training data
         if initialize: self.initialized = True
             
         if self.verbose: print(datetime.now(), 'data loaded.')
@@ -100,6 +112,7 @@ class AnomalyMIL1553:
         return xdata
     
 
+    # building all the models
     def model(self, 
               nu = [0.001, 0.01, 0.001], 
               contamination = [0.001, 0.001, 0.001]):
@@ -116,6 +129,8 @@ class AnomalyMIL1553:
         
         if self.verbose: print(datetime.now(), 'the model is ready.')
 
+
+    # fitting the data on all the models
     def fit(self):
         
         if self.verbose: print(datetime.now(), 'the model is being fitted ...')
@@ -127,6 +142,7 @@ class AnomalyMIL1553:
         self.ee.fit(self.xdata)
         if self.verbose: print(datetime.now(), 'the model is fitted.')
 
+    # predicting the labels and then averaging
     def predict(self, xdata = None):
         if xdata is None: xdata = self.xdata
             
